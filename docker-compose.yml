@@ -1,0 +1,206 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: chat_postgres
+    environment:
+      POSTGRES_DB: chat_system
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - chat_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chat_system"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for PubSub
+  redis:
+    image: redis:7-alpine
+    container_name: chat_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - chat_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # User Service - Instance 1
+  user-service-1:
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile.simple
+    container_name: user_service_1
+    environment:
+      - NODE_ENV=production
+      - PORT=4001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=chat_system
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chat_network
+
+  # User Service - Instance 2
+  user-service-2:
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile.simple
+    container_name: user_service_2
+    environment:
+      - NODE_ENV=production
+      - PORT=4003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=chat_system
+    ports:
+      - "4003:4003"
+    depends_on:
+      - postgres
+    networks:
+      - chat_network
+
+  # Sender Service - Instance 1
+  sender-service-1:
+    build:
+      context: ./backend/sender-service
+      dockerfile: Dockerfile.simple
+    container_name: sender_service_1
+    environment:
+      - NODE_ENV=production
+      - PORT=4002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=chat_system
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chat_network
+
+  # Sender Service - Instance 2
+  sender-service-2:
+    build:
+      context: ./backend/sender-service
+      dockerfile: Dockerfile.simple
+    container_name: sender_service_2
+    environment:
+      - NODE_ENV=production
+      - PORT=4004
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=chat_system
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "4004:4004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chat_network
+
+  # Receiver Service - Instance 1
+  receiver-service-1:
+    build:
+      context: ./backend/receiver-service
+      dockerfile: Dockerfile.simple
+    container_name: receiver_service_1
+    environment:
+      - NODE_ENV=production
+      - PORT=4005
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=chat_system
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "4005:4005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chat_network
+
+  # Receiver Service - Instance 2
+  receiver-service-2:
+    build:
+      context: ./backend/receiver-service
+      dockerfile: Dockerfile.simple
+    container_name: receiver_service_2
+    environment:
+      - NODE_ENV=production
+      - PORT=4006
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=chat_system
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "4006:4006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chat_network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.simple
+    container_name: chat_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_USER_SERVICE_URL=http://localhost:4001
+      - REACT_APP_SENDER_SERVICE_URL_1=http://localhost:4002
+      - REACT_APP_SENDER_SERVICE_URL_2=http://localhost:4004
+      - REACT_APP_RECEIVER_SERVICE_URL_1=http://localhost:4005
+      - REACT_APP_RECEIVER_SERVICE_URL_2=http://localhost:4006
+    networks:
+      - chat_network
+
+volumes:
+  postgres_data:
+
+networks:
+  chat_network:
+    driver: bridge

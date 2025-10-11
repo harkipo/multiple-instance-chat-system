@@ -1,0 +1,50 @@
+{
+  "name": "real-time-chat-system",
+  "version": "1.0.0",
+  "description": "A scalable real-time chat system with microservices architecture",
+  "author": "AI Assistant",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "docker-compose up --build",
+    "start:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "stop": "docker-compose down",
+    "clean": "docker-compose down -v --remove-orphans",
+    "logs": "docker-compose logs -f",
+    "test": "npm run test:user-service && npm run test:chat-service && npm run test:e2e",
+    "test:user-service": "cd backend/user-service && npm test",
+    "test:chat-service": "cd backend/chat-service && npm test",
+    "test:e2e": "cd test && npm test",
+    "build": "npm run build:user-service && npm run build:chat-service && npm run build:frontend",
+    "build:user-service": "cd backend/user-service && npm run build",
+    "build:chat-service": "cd backend/chat-service && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "install:all": "npm run install:user-service && npm run install:chat-service && npm run install:frontend",
+    "install:user-service": "cd backend/user-service && npm install",
+    "install:chat-service": "cd backend/chat-service && npm install",
+    "install:frontend": "cd frontend && npm install"
+  },
+  "devDependencies": {
+    "@types/supertest": "^2.0.12",
+    "supertest": "^6.3.3"
+  },
+  "keywords": [
+    "chat",
+    "real-time",
+    "microservices",
+    "nestjs",
+    "graphql",
+    "react",
+    "typescript",
+    "postgresql",
+    "docker"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/real-time-chat-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/real-time-chat-system/issues"
+  },
+  "homepage": "https://github.com/your-username/real-time-chat-system#readme"
+}
